@@ -1,20 +1,71 @@
+import React from 'react';
+
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
+
+import MapView, { Marker } from 'react-native-maps';
+import { API_KEY } from '@env';
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
+	const [ address, setAddress ] = React.useState ( '' );
+	const [ coordinates, setCoordinates ] = React.useState ( { lat: 0, lng: 0 } );
+
+	const onClick = ( ) => {
+		fetch ( `https://www.mapquestapi.com/geocoding/v1/address?key=${API_KEY}&location=${address}` )
+			.then ( resp => resp.json ( ) )
+			.then ( resp => {
+				console.log ( resp );
+				setCoordinates ( resp.results [ 0 ].locations [ 0 ].displayLatLng );
+			} );
+	};
+
+	const inputElement = ( ( ) => {
+		return <View>
+			<TextInput style={ { width: 300, borderColor: 'black', borderWidth: 2 } } onChangeText={ ( text ) => setAddress ( text ) } value={ address }/>
+			<Button style={ { width: 300 } } onPress={ onClick } title='Find'/>
+		</View>
+	} ) ( );
+
+	const mapElement = ( ( ) => {
+		if ( coordinates.lat === 0 && coordinates.lng === 0 ) {
+			return <View/>
+		}
+
+		return <MapView
+				style={
+					{ flex: 1, width: '100%', height: '100%' }
+				}
+
+				initialRegion={ 
+					{
+						latitude: 60.200692,
+						longitude: 24.934302,
+						latitudeDelta: 0.0322,
+						longitudeDelta: 0.0221
+					}
+				}
+			>
+			<Marker
+				coordinate={ { latitude: coordinates.lat, longitude: coordinates.lng } }
+				title={ address }
+			/>
+		</MapView>
+	} ) ( );
+
+	return (
+		<View style={styles.container}>
+			{ mapElement }
+			{ inputElement }
+			<StatusBar style="auto" />
+		</View>
+	);
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+	container: {
+		flex: 1,
+		backgroundColor: '#fff',
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
 });
