@@ -1,9 +1,10 @@
 import React from 'react';
 
 import { StatusBar } from 'expo-status-bar';
-import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Button, StyleSheet, TextInput, View } from 'react-native';
 
 import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { API_KEY } from '@env';
 
 export default function App() {
@@ -11,6 +12,23 @@ export default function App() {
 	const [ lastSearched, setLast ] = React.useState ( '' );
 	const [ coordinates, setCoordinates ] = React.useState ( { lat: 0, lng: 0 } );
 
+	const [ userLocation, setLocation ] = React.useState ( { latitude: 0, longitude: 0 } );
+
+	React.useEffect ( ( ) => {
+		( async ( ) => {
+			const { status } = await Location.requestForegroundPermissionsAsync ( );
+
+			if ( status !== 'granted' ) {
+				console.log ( status );
+				Alert.alert ( 'where location permissions' );
+				return
+			}
+			const { coords } = await Location.getCurrentPositionAsync ( { accuracy: Location.Accuracy.Highest } );
+
+			setLocation ( { latitude: coords.latitude, longitude: coords.longitude } );
+		} ) ( );
+	}, [ ] );
+	
 	const onClick = ( ) => {
 		fetch ( `https://www.mapquestapi.com/geocoding/v1/address?key=${API_KEY}&location=${address}` )
 			.then ( resp => resp.json ( ) )
@@ -28,9 +46,14 @@ export default function App() {
 	} ) ( );
 
 	const mapElement = ( ( ) => {
-		if ( coordinates.lat === 0 && coordinates.lng === 0 ) {
+		if ( userLocation.latitude === 0 && userLocation.longitude === 0 && coordinates.lat === 0 && coordinates.lng === 0 ) {
 			return <View/>
 		}
+
+		const regionCoords = {
+			latitude: coordinates.lat === 0 ? userLocation.latitude : coordinates.lat,
+			longitude: coordinates.lng === 0 ? userLocation.longitude : coordinates.lng
+		};
 
 		return <MapView
 				style={
@@ -39,8 +62,8 @@ export default function App() {
 
 				initialRegion={ 
 					{
-						latitude: 60.200692,
-						longitude: 24.934302,
+						latitude: userLocation.latitude,
+						longitude: userLocation.longitude,
 						latitudeDelta: 0.0322,
 						longitudeDelta: 0.0221
 					}
@@ -48,15 +71,14 @@ export default function App() {
 
 				region={
 					{ 
-						latitude: coordinates.lat,
-						longitude: coordinates.lng,
+						...regionCoords,
 						latitudeDelta: 0.0322,
 						longitudeDelta: 0.0221
 					}
 				}
 			>
 			<Marker
-				coordinate={ { latitude: coordinates.lat, longitude: coordinates.lng } }
+				coordinate={ regionCoords }
 				title={ lastSearched }
 			/>
 		</MapView>
