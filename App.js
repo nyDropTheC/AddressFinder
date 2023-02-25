@@ -8,14 +8,15 @@ import { API_KEY } from '@env';
 
 export default function App() {
 	const [ address, setAddress ] = React.useState ( '' );
+	const [ lastSearched, setLast ] = React.useState ( '' );
 	const [ coordinates, setCoordinates ] = React.useState ( { lat: 0, lng: 0 } );
 
 	const onClick = ( ) => {
 		fetch ( `https://www.mapquestapi.com/geocoding/v1/address?key=${API_KEY}&location=${address}` )
 			.then ( resp => resp.json ( ) )
 			.then ( resp => {
-				console.log ( resp );
 				setCoordinates ( resp.results [ 0 ].locations [ 0 ].displayLatLng );
+				setLast ( address );
 			} );
 	};
 
@@ -44,10 +45,19 @@ export default function App() {
 						longitudeDelta: 0.0221
 					}
 				}
+
+				region={
+					{ 
+						latitude: coordinates.lat,
+						longitude: coordinates.lng,
+						latitudeDelta: 0.0322,
+						longitudeDelta: 0.0221
+					}
+				}
 			>
 			<Marker
 				coordinate={ { latitude: coordinates.lat, longitude: coordinates.lng } }
-				title={ address }
+				title={ lastSearched }
 			/>
 		</MapView>
 	} ) ( );
